@@ -70,8 +70,7 @@ if st.session_state.show_prototype:
 # ------------------ LAUNCH OPTIGRADE TOOLS ------------------
 if st.session_state.onboarded:
     st.title("📚 OptiGrade Dashboard")
-#this is whwre the new one pasted started from
-# Tabs block...
+    # Tabs block...
 tab1, tab2, tab3, tab4, tab5 = st.tabs([...])
 # (tabs content...)
 
@@ -94,6 +93,8 @@ faculty = st.text_input("🏛️ Faculty or Department")
 grading_scale = st.selectbox("📏 Grading Scale", ["5.0 Scale", "4.0 Scale", "Custom"])
 
 st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # spacing before next section
+
+#this is whwre the new one pasted started from that from line 73 to be removed incase
 
     #This is the normal one before pasting oin line 74
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
