@@ -1,4 +1,4 @@
-# OptiGrade – Mobile Prototype
+# OptiGrade – EduTech App
 **OptiGrade** is a smart academic companion built to help students succeed by tracking study habits, predicting CGPA, and offering tailored academic insights.
 
 OptiGrade enhances study efficiency for students by offering personalized academic guidance. It analyzes learning history, habits, and course performance to generate data-driven study plans, CGPA predictions, and actionable insights. With tools for tracking progress, managing time, and setting goals, it reduces stress and boosts academic success.
