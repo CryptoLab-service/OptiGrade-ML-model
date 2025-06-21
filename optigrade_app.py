@@ -70,17 +70,7 @@ if st.session_state.show_prototype:
 # ------------------ LAUNCH OPTIGRADE TOOLS ------------------
 if st.session_state.onboarded:
     st.title("📚 OptiGrade Dashboard")
-
-    tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "ℹ️ About", 
-        "🚀 Features", 
-        "🧠 CGPA Predictor", 
-        "📘 Study Habit Tracker", 
-        "📂 Course Manager"
-    ])
-
     #this is whwre the new one pasted started from that from line 73 to be removed incase
-
     #This is the normal one before pasting oin line 74
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "ℹ️ About", 
