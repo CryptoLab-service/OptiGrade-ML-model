@@ -7,9 +7,33 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
-#where the Heading starts from
+#Logo Session here
 import streamlit as st
 
+if not st.session_state.get("onboarded", False):
+    st.markdown("<h1 style='font-size: 48px; color: #333; text-align: center;'>Welcome to OptiGrade!</h1>", unsafe_allow_html=True)
+
+    st.write("Smart academic insights to help you study better and succeed with confidence.")
+
+    st.image(
+        "https://cdn.pixabay.com/photo/2017/10/18/15/40/college-2863891_960_720.jpg",
+        caption="Your learning companion 🚀",
+        use_container_width=True
+    )
+
+    st.markdown(
+        "🔗 Want a sneak peek of the mobile experience? "
+        "[Click here to explore the Figma prototype](https://www.figma.com/proto/B2L8DOx0u3xuSWPhKpJpO5/OptiGrade-Mobile-App---EduTech?node-id=810-1023&t=LkykJEw02nadKihK-1&starting-point-node-id=802%3A966&content-scaling=fixed)",
+        unsafe_allow_html=True
+    )
+
+    if st.button("View Mobile Prototype"):
+        st.session_state.onboarded = True
+        st.rerun()
+
+
+
+#where the Heading starts from
 if not st.session_state.get("onboarded", False):
     # Big, bold, centered white heading
     st.markdown(
