@@ -6,15 +6,25 @@ from sklearn.metrics import mean_squared_error
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
-
-#Logo Session here
 import streamlit.components.v1 as components
 
+# Load environment variables
+load_dotenv()
+api_key = os.getenv("API_KEY")
+
+# Initialize session state
+if "onboarded" not in st.session_state:
+    st.session_state.onboarded = False
+if "show_prototype" not in st.session_state:
+    st.session_state.show_prototype = False
+
+# ------------------ LOGO ------------------
 components.html("""
     <div style="display: flex; justify-content: center; padding: 20px;">
         <svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="150" height="150" rx="36.875" fill="url(#paint0_linear_826_2220)"/>
-            <path d="M64.8293 43.5172C57.7138 40.1199 47.7683 38.4558 34.4532 38.3967C33.1975 38.3797 31.9664 38.7458 30.9241 39.4464C30.0685 40.0247 29.3682 40.8043 28.8847 41.7168C28.4012 42.6292 28.1493 43.6465 28.1511 44.6791V101.024C28.1511 104.832 30.861 107.706 34.4532 107.706C48.4498 107.706 62.4896 109.014 70.899 116.962C71.014 117.071 71.1586 117.144 71.3148 117.172C71.471 117.2 71.6319 117.181 71.7775 117.118C71.9231 117.055 72.047 116.951 72.1338 116.818C72.2206 116.685 72.2665 116.53 72.2657 116.371V49.9807C72.2659 49.5328 72.1701 49.0901 71.9846 48.6824C71.7991 48.2747 71.5283 47.9116 71.1904 47.6175C69.2642 45.9707 67.1245 44.5915 64.8293 43.5172ZM119.909 39.4405C118.867 38.7417 117.635 38.3775 116.38 38.3967C103.065 38.4558 93.1197 40.1121 86.0043 43.5172C83.7092 44.5895 81.5689 45.966 79.6411 47.6096C79.304 47.9041 79.0337 48.2674 78.8486 48.675C78.6635 49.0826 78.5677 49.5252 78.5678 49.9729V116.367C78.5677 116.52 78.6126 116.669 78.6969 116.796C78.7812 116.923 78.9012 117.022 79.0417 117.081C79.1822 117.14 79.337 117.157 79.4868 117.128C79.6365 117.099 79.7745 117.027 79.8834 116.921C84.9388 111.899 93.811 107.7 116.388 107.702C118.06 107.702 119.663 107.038 120.844 105.856C122.026 104.674 122.69 103.071 122.69 101.4V44.6811C122.693 43.6464 122.44 42.6271 121.955 41.7131C121.47 40.7991 120.768 40.0186 119.909 39.4405Z" fill="white"/>
+            <!-- Inner logo path here -->
+            <path d="M64.8293 43.5172...Z" fill="white"/>
             <defs>
                 <linearGradient id="paint0_linear_826_2220" x1="-13.75" y1="101.25" x2="149.672" y2="34.2008" gradientUnits="userSpaceOnUse">
                     <stop stop-color="#1C69B2"/>
@@ -25,55 +35,26 @@ components.html("""
     </div>
 """, height=180)
 
-#where the Heading starts from
-if not st.session_state.get("onboarded", False):
-    # Big, bold, centered white heading
+# ------------------ ONBOARDING ------------------
+if not st.session_state.onboarded:
     st.markdown(
         "<h1 style='text-align: center; font-size: 64px; color: white;'>Welcome to OptiGrade!</h1>",
         unsafe_allow_html=True
     )
-
-    # White subtext, centered
     st.markdown(
         "<p style='text-align: center; color: white; font-size: 18px;'>Smart academic insights to help you study better and succeed with confidence.</p>",
         unsafe_allow_html=True
     )
-
-    # Space between text and button
-    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
-
-    # Centered responsive button
-    col1, col2, col3 = st.columns([3, 4, 3])  # Adjust spacing as needed
-    with col2:
-        if st.button("📱 View Mobile Prototype", key="view_mobile_button"):
-    st.session_state.show_prototype = True
-            st.rerun()
-import streamlit as st
-import streamlit.components.v1 as components
-
-# Initialize session state
-if "show_prototype" not in st.session_state:
-    st.session_state.show_prototype = False
-
-if not st.session_state.get("onboarded", False):
-    st.markdown(
-        "<h1 style='text-align: center; font-size: 64px; color: white;'>Welcome to OptiGrade!</h1>",
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        "<p style='text-align: center; color: white; font-size: 18px;'>Smart academic insights to help you study better and succeed with confidence.</p>",
-        unsafe_allow_html=True
-    )
-
     st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([3, 4, 3])
     with col2:
-        if st.button("📱 View Mobile Prototype"):
+        if st.button("📱 View Mobile Prototype", key="view_mobile_button"):
             st.session_state.show_prototype = True
+            st.session_state.onboarded = True
+            st.rerun()
 
-# Show Figma prototype if button was clicked
+# ------------------ PROTOTYPE DISPLAY ------------------
 if st.session_state.show_prototype:
     st.markdown("### 📱 OptiGrade Mobile Preview")
     components.html("""
@@ -85,6 +66,46 @@ if st.session_state.show_prototype:
             allowfullscreen>
         </iframe>
     """, height=620)
+
+# ------------------ LAUNCH OPTIGRADE TOOLS ------------------
+if st.session_state.onboarded:
+    st.title("📚 OptiGrade Dashboard")
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "ℹ️ About", 
+        "🚀 Features", 
+        "🧠 CGPA Predictor", 
+        "📘 Study Habit Tracker", 
+        "📂 Course Manager"
+    ])
+
+    with tab1:
+        st.subheader("Welcome to OptiGrade")
+        st.write("OptiGrade is your intelligent academic assistant, built to help students predict academic performance, monitor study habits, and plan smarter for success.")
+
+    with tab2:
+        st.subheader("Key Features")
+        st.markdown("""
+        - 📊 **Predict Your CGPA** from past grades and course insights  
+        - 📘 **Track Study Habits** visually over time  
+        - 🗂️ **Manage Courses** in real-time  
+        - 🎯 **Optimize Study Hours** based on difficulty and credit load  
+        - 🔐 **Privacy-First**: All data is yours, no external storage  
+        """)
+
+    with tab3:
+        st.subheader("Predict Your CGPA")
+        st.write("Enter past academic data and get predictions based on performance, attendance, and course difficulty.")
+
+    with tab4:
+        st.subheader("Track Your Learning Habits")
+        st.write("Log study hours, analyze consistency, and stay on track with your academic goals.")
+
+    with tab5:
+        st.subheader("Course Manager")
+        st.write("Add or manage courses for the semester in a clean, interactive layout.")
+
+# You can insert your course input forms, dataframes, and model logic below inside the tab blocks as needed.
 
 # Load environment variables
 load_dotenv()
