@@ -13,8 +13,6 @@ load_dotenv()
 # Get API key from environment variables
 api_key = os.getenv("API_KEY")
 
->>>>>>> edbfa74055a629e0ecea538b2b990cb192e6b67f
-
 # Initialize session state for navigation and data
 if 'page' not in st.session_state:
     st.session_state.page = 'Screen 1'
