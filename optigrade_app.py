@@ -1,10 +1,21 @@
-# File: optigrade_app.py
 import streamlit as st
 import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import google.generativeai as genai
+<<<<<<< HEAD
+=======
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get API key from environment variables
+api_key = os.getenv("API_KEY")
+
+>>>>>>> edbfa74055a629e0ecea538b2b990cb192e6b67f
 
 # Initialize session state for navigation and data
 if 'page' not in st.session_state:
@@ -19,12 +30,11 @@ if 'api_key' not in st.session_state:
     st.session_state.api_key = ''
 
 # Streamlit app
-st.title("OptiGrade: Academic Success Planner")
+st.title("OptiGrade")
 
 # Sidebar for API key and user ID
 with st.sidebar:
     st.header("Settings")
-    st.session_state.api_key = st.text_input("AIzaSyDT4QGuU7Cy1IJvAXtq1DzJzbvFmXJx9_o", type="password")
     st.session_state.user_id = st.number_input("Student ID (1-10)", min_value=1, max_value=10, value=1)
 
 # Navigation
@@ -154,9 +164,9 @@ elif st.session_state.page == 'Results':
 
     # Generate recommendations
     st.subheader("Personalized Recommendations")
-    if st.session_state.api_key:
+    if api_key:
         try:
-            genai.configure(api_key=st.session_state.api_key)
+            genai.configure(api_key=api_key)
             weak_course = user_prev[user_prev['grade'] == user_prev['grade'].min()]['course_id'].iloc[0]
             weak_grade = user_prev['grade'].min()
             learning_style = user_curr['learning_style'].iloc[0]
@@ -178,7 +188,7 @@ elif st.session_state.page == 'Results':
         except Exception as e:
             st.error(f"Error generating recommendations: {str(e)}")
     else:
-        st.warning("AIzaSyDT4QGuU7Cy1IJvAXtq1DzJzbvFmXJx9_o")
+        st.warning("Please set the API_KEY environment variable.")
 
     # Navigation back
     if st.button("Back to Screen 1"):
