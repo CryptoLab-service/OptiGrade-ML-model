@@ -19,11 +19,13 @@ if "show_prototype" not in st.session_state:
     st.session_state.show_prototype = False
 
 # ------------------ LOGO ------------------
+import streamlit.components.v1 as components
+
 components.html("""
-    <div style="display: flex; justify-content: center; padding: 20px;">
-        <svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div style="display: flex; justify-content: center; align-items: center; padding: 20px;">
+        <svg width="180" height="180" viewBox="0 0 150 150" preserveAspectRatio="xMidYMid meet"
+             xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
             <rect width="150" height="150" rx="36.875" fill="url(#paint0_linear_826_2220)"/>
-            <!-- Inner logo path here -->
             <path d="M64.8293 43.5172...Z" fill="white"/>
             <defs>
                 <linearGradient id="paint0_linear_826_2220" x1="-13.75" y1="101.25" x2="149.672" y2="34.2008" gradientUnits="userSpaceOnUse">
@@ -33,7 +35,7 @@ components.html("""
             </defs>
         </svg>
     </div>
-""", height=180)
+""", height=220)
 
 # ------------------ ONBOARDING ------------------
 if not st.session_state.onboarded:
