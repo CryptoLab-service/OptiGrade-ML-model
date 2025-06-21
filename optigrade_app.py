@@ -45,8 +45,8 @@ if not st.session_state.get("onboarded", False):
     # Centered responsive button
     col1, col2, col3 = st.columns([3, 4, 3])  # Adjust spacing as needed
     with col2:
-        if st.button("📱 View Mobile Prototype"):
-            st.session_state.onboarded = True
+        if st.button("📱 View Mobile Prototype", key="view_mobile_button"):
+    st.session_state.show_prototype = True
             st.rerun()
 import streamlit as st
 import streamlit.components.v1 as components
