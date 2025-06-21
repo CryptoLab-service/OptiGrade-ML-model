@@ -7,6 +7,32 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
+#where the Heading starts from
+import streamlit as st
+
+if not st.session_state.get("onboarded", False):
+    # Big, bold, centered white heading
+    st.markdown(
+        "<h1 style='text-align: center; font-size: 64px; color: white;'>Welcome to OptiGrade!</h1>",
+        unsafe_allow_html=True
+    )
+
+    # White subtext, centered
+    st.markdown(
+        "<p style='text-align: center; color: white; font-size: 18px;'>Smart academic insights to help you study better and succeed with confidence.</p>",
+        unsafe_allow_html=True
+    )
+
+    # Space between text and button
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+
+    # Centered responsive button
+    col1, col2, col3 = st.columns([3, 4, 3])  # Adjust spacing as needed
+    with col2:
+        if st.button("📱 View Mobile Prototype"):
+            st.session_state.onboarded = True
+            st.rerun()
+
 # Load environment variables
 load_dotenv()
 
