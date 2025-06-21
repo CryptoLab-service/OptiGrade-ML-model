@@ -70,31 +70,16 @@ if st.session_state.show_prototype:
 # ------------------ LAUNCH OPTIGRADE TOOLS ------------------
 if st.session_state.onboarded:
     st.title("📚 OptiGrade Dashboard")
-    # Tabs block...
-tab1, tab2, tab3, tab4, tab5 = st.tabs([...])
-# (tabs content...)
 
-# ⬇️ Add this separator and new section
-st.markdown("---")  # horizontal separator
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "ℹ️ About", 
+        "🚀 Features", 
+        "🧠 CGPA Predictor", 
+        "📘 Study Habit Tracker", 
+        "📂 Course Manager"
+    ])
 
-st.markdown(
-    "<h2 style='text-align: center; color: white;'>🧾 Academic Summary</h2>",
-    unsafe_allow_html=True
-)
-st.markdown(
-    "<p style='text-align: center; color: white;'>Set up your academic identity before adding courses. This helps personalize your experience inside OptiGrade.</p>",
-    unsafe_allow_html=True
-)
-
-# Example fields to collect info before course entry
-name = st.text_input("👤 Full Name")
-level = st.selectbox("🎓 Level of Study", ["100 Level", "200 Level", "300 Level", "400 Level"])
-faculty = st.text_input("🏛️ Faculty or Department")
-grading_scale = st.selectbox("📏 Grading Scale", ["5.0 Scale", "4.0 Scale", "Custom"])
-
-st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)  # spacing before next section
-
-#this is whwre the new one pasted started from that from line 73 to be removed incase
+    #this is whwre the new one pasted started from that from line 73 to be removed incase
 
     #This is the normal one before pasting oin line 74
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
