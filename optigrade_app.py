@@ -4,7 +4,7 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
-import google.generativeaiAD as genaA
+import google.generativeai as genai
 
 # Initialize session state for navigation and data
 if 'page' not in st.session_state:

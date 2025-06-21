@@ -1,0 +1,119 @@
+# Step 1: Import libraries
+import pandas as pd
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error
+import google.generativeai as genai
+
+# Step 2: Upload and load dataset
+from google.colab import files
+uploaded = files.upload()  # Upload student_data.csv
+
+# Read CSV, skipping the first row (header)
+data = pd.read_csv('student_data.csv', header=1)
+
+# Split previous and current semester data
+prev_data_cleaned = data[data['semester'] == 'previous'].copy()
+curr_data = data[data['semester'] == 'current'].copy()
+
+# Display
+print("Previous Semester:\n", prev_data_cleaned.head(10))
+print("\nCurrent Semester:\n", curr_data.head(10))
+
+# Step 3: Train CGPA prediction model
+features = ['grade', 'study_hours', 'course_units', 'course_difficulty', 'attendance', 'current_cgpa']
+X = prev_data_cleaned[features].astype(float)
+y = prev_data_cleaned['semester_gpa'].astype(float)
+
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train model
+model = xgb.XGBRegressor(objective='reg:squarederror', n_estimators=50, random_state=42)
+model.fit(X_train, y_train)
+
+# Evaluate
+y_pred = model.predict(X_test)
+rmse = mean_squared_error(y_test, y_pred)
+print(f"\nRMSE: {rmse:.3f}")
+
+# Step 4: Predict current semester GPA
+for user_id in curr_data['user_id'].unique():
+    user_prev = prev_data_cleaned[prev_data_cleaned['user_id'] == user_id]
+    user_curr = curr_data[curr_data['user_id'] == user_id].copy()
+
+    # Estimate grades for current courses
+    avg_grade = user_prev['grade'].mean()
+    user_curr['estimated_grade'] = avg_grade - (user_curr['course_difficulty'].astype(float) - user_prev['course_difficulty'].astype(float).mean()) * 5
+    user_curr['study_hours'] = user_curr['course_units'].astype(float) * 3  # Placeholder: 3h/unit
+    user_curr['attendance'] = user_prev['attendance'].mean()  # Assume similar attendance
+    user_curr['current_cgpa'] = user_prev['current_cgpa'].iloc[0]  # Use previous CGPA
+
+    # Predict semester GPA
+    X_curr = user_curr[features].astype(float)
+    predicted_gpa = model.predict(X_curr).mean()
+    print(f"Student {user_id}: Predicted Semester GPA: {predicted_gpa:.2f}")
+
+# Step 5: Analyze causes of previous GPA
+for user_id in prev_data_cleaned['user_id'].unique():
+    user_prev = prev_data_cleaned[prev_data_cleaned['user_id'] == user_id]
+    avg_grade = user_prev['grade'].mean()
+    avg_hours = user_prev['study_hours'].mean()
+    avg_attendance = user_prev['attendance'].mean()
+    weak_course = user_prev[user_prev['grade'] == user_prev['grade'].min()]['course_id'].iloc[0]
+    weak_grade = user_prev['grade'].min()
+    high_difficulty = user_prev[user_prev['course_difficulty'].astype(float) >= 3]['course_id'].tolist()
+
+    print(f"\nPrevious GPA Analysis for Student {user_id} (Semester GPA: {user_prev['semester_gpa'].iloc[0]:.2f}):")
+    print(f"- Average Grade: {avg_grade:.1f}")
+    print(f"- Average Study Hours: {avg_hours:.1f}/week")
+    print(f"- Average Attendance: {avg_attendance:.1f}%")
+    print(f"- Weakest Course: {weak_course} (Grade: {weak_grade:.1f})")
+    if high_difficulty:
+        print(f"- High-Difficulty Courses: {', '.join(high_difficulty)}")
+    if avg_hours < 8:
+        print("- Possible Cause: Low study hours may have reduced performance.")
+    if avg_attendance < 85:
+        print("- Possible Cause: Low attendance may have impacted GPA.")
+    if weak_grade < 70:
+        print("- Possible Cause: Poor performance in specific courses affected GPA.")
+
+# Step 6: Optimize study hours
+total_hours_per_week = 40  # Weekly study budget for 5 courses
+for user_id in curr_data['user_id'].unique():
+    user_curr = curr_data[curr_data['user_id'] == user_id].copy()
+    user_curr['study_weight'] = user_curr['course_units'].astype(float) * user_curr['course_difficulty'].astype(float)
+    user_curr['allocated_hours'] = (user_curr['study_weight'] / user_curr['study_weight'].sum()) * total_hours_per_week
+
+    # Display study plan
+    print(f"\nStudy Plan for Student {user_id}:")
+    for _, row in user_curr[['course_id', 'course_units', 'course_difficulty', 'allocated_hours']].iterrows():
+        print(f"{row['course_id']}: {row['allocated_hours']:.1f} hours/week (Units: {row['course_units']}, Difficulty: {row['course_difficulty']})")
+
+# Step 7: Generate recommendations with Google AI Studio
+genai.configure(api_key=AIzaSyDT4QGuU7Cy1IJvAXtq1DzJzbvFmXJx9_o)  # Get from aistudio.google.com
+model_ai = genai.GenerativeModel('gemini-1.5-flash')
+
+for user_id in curr_data['user_id'].unique():
+    user_prev = prev_data_cleaned[prev_data_cleaned['user_id'] == user_id]
+    user_curr = curr_data[curr_data['user_id'] == user_id]
+    weak_course = user_prev[user_prev['grade'] == user_prev['grade'].min()]['course_id'].iloc[0]
+    weak_grade = user_prev['grade'].min()
+    learning_style = user_curr['learning_style'].iloc[0]
+    predicted_gpa = model.predict(user_curr[features].astype(float)).mean()
+    avg_hours = user_prev['study_hours'].mean()
+    avg_attendance = user_prev['attendance'].mean()
+
+    prompt = f"""
+    Student {user_id} has a current CGPA of {user_prev['current_cgpa'].iloc[0]:.2f}, semester GPA of {user_prev['semester_gpa'].iloc[0]:.2f} last semester, and was weak in {weak_course} (grade: {weak_grade:.1f}).
+    Past study habits: {avg_hours:.1f} hours/week, {avg_attendance:.1f}% attendance.
+    Possible GPA causes: {', '.join(['Low study hours' if avg_hours < 8 else '', 'Low attendance' if avg_attendance < 85 else '', f'Poor performance in {weak_course}' if weak_grade < 70 else ''])}.
+    They are taking these courses this semester:
+    {', '.join(f"{row['course_id']} ({row['course_units']} units, difficulty: {row['course_difficulty']})" for _, row in user_curr.iterrows())}.
+    Predicted semester GPA: {predicted_gpa:.2f}. Learning style: {learning_style}.
+    Suggest a 1-week study plan, learning resources, and strategies to address past weaknesses (e.g., low grades in {weak_course}).
+    Prioritize higher-unit and difficult courses, and tailor to {learning_style} learning style.
+    """
+    response = model_ai.generate_content(prompt)
+    print(f"\nRecommendations for Student {user_id}:\n{response.text}")
