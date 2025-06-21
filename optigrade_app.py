@@ -48,6 +48,43 @@ if not st.session_state.get("onboarded", False):
         if st.button("📱 View Mobile Prototype"):
             st.session_state.onboarded = True
             st.rerun()
+import streamlit as st
+import streamlit.components.v1 as components
+
+# Initialize session state
+if "show_prototype" not in st.session_state:
+    st.session_state.show_prototype = False
+
+if not st.session_state.get("onboarded", False):
+    st.markdown(
+        "<h1 style='text-align: center; font-size: 64px; color: white;'>Welcome to OptiGrade!</h1>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<p style='text-align: center; color: white; font-size: 18px;'>Smart academic insights to help you study better and succeed with confidence.</p>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown("<div style='height: 40px;'></div>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([3, 4, 3])
+    with col2:
+        if st.button("📱 View Mobile Prototype"):
+            st.session_state.show_prototype = True
+
+# Show Figma prototype if button was clicked
+if st.session_state.show_prototype:
+    st.markdown("### 📱 OptiGrade Mobile Preview")
+    components.html("""
+        <iframe 
+            style="border: none;" 
+            width="100%" 
+            height="600" 
+            src="https://www.figma.com/embed?embed_host=streamlit&url=https://www.figma.com/proto/B2L8DOx0u3xuSWPhKpJpO5/OptiGrade-Mobile-App---EduTech?node-id=810-1023&t=LkykJEw02nadKihK-1&starting-point-node-id=802%3A966&content-scaling=fixed"
+            allowfullscreen>
+        </iframe>
+    """, height=620)
 
 # Load environment variables
 load_dotenv()
