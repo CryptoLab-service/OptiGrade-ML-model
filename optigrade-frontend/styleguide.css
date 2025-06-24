@@ -1,0 +1,34 @@
+:root {
+  /* 🎨 Base Color Scheme */
+  --color-scheme-black-color: rgba(3, 11, 42, 1);
+  --color-scheme-color-grey-black: rgba(0, 0, 0, 1);
+  --color-scheme-screen-white: rgba(244, 251, 255, 1);
+  --color-scheme-text-black: rgba(59, 59, 59, 1);
+  --color-scheme-placeholder-color: rgba(234, 234, 234, 1); /* Fixed typo */
+
+  /* 🔧 System Label Colors (default mode below) */
+  --system-colors-labels-primary: rgba(0, 0, 0, 1);
+
+  /* 🧱 Design System Tokens */
+  --variable-collection-black-color: rgba(41, 41, 41, 1);
+  --variable-collection-blue-color: rgba(52, 152, 219, 1);
+  --variable-collection-blue-main: rgba(28, 105, 178, 1);
+  --variable-collection-button-primary-color: rgba(95, 97, 240, 1);
+  --variable-collection-green-color: rgba(16, 204, 164, 1);
+  --variable-collection-nav-color: rgba(100, 100, 100, 1);
+  --variable-collection-primary-b: rgba(95, 97, 240, 1);
+}
+
+/* 🌞 Light Mode */
+[data-system-colors-mode="light"],
+[data-system-colors-mode="IC-light"] {
+  --system-colors-labels-primary: rgba(0, 0, 0, 1);
+}
+
+/* 🌚 Dark Mode */
+[data-system-colors-mode="dark"],
+[data-system-colors-mode="dark-elevated"],
+[data-system-colors-mode="IC-dark"],
+[data-system-colors-mode="IC-dark-elevated"] {
+  --system-colors-labels-primary: rgba(255, 255, 255, 1);
+}
