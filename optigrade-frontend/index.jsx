@@ -1,7 +1,7 @@
 import React from "react";
 import x97604931 from "./9760493-1.png";
 import x97604933 from "./9760493-3.png";
-import { HomeIndicator } from "./HomeIndicator";
+import { HomeIndicator } from "./HomeIndicator"
 import "./style.css";
 
 export const Splashscreen = () => {
