@@ -125,6 +125,25 @@ def create_dotted_forecast_chart(previous_cgpa, predicted_cgpa):
     
     return fig
 
+def format_student_data():
+    """
+    Convert current student data into a nicely formatted summary string.
+    """
+    name = st.session_state.user_name
+    user_id = st.session_state.user_id
+    current_cgpa = st.session_state.current_cgpa
+    courses = st.session_state.curr_data
+
+    course_list = "\n".join([f"{c['name']} - Grade: {c['grade']}" for c in courses]) if courses else "No current courses."
+
+    return f"""Student Name: {name}
+Student ID: {user_id}
+Current CGPA: {current_cgpa}
+Current Courses:
+{course_list}
+"""
+
+
 def display_student_profile():
     """Display interactive student profile with visual elements"""
     # Create a container with a colored border
