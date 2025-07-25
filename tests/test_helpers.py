@@ -1,6 +1,21 @@
 import pytest
 import streamlit as st
-from optigrade_app import format_student_data
+def test_format_student_data():
+    mock_data = {
+        'user_name': 'Jane Doe',
+        'user_id': '2023-XYZ',
+        'current_cgpa': 3.75,
+        'curr_data': [
+            {'name': 'Mathematics', 'grade': 'A'},
+            {'name': 'Biology', 'grade': 'B+'}
+        ]
+    }
+
+    result = format_student_data(mock_data)
+
+    assert "Jane Doe" in result
+    assert "2023-XYZ" in result
+    assert "Mathematics - Grade: A" in result
 
 # 🧪 Fixture to mock session state
 @pytest.fixture
