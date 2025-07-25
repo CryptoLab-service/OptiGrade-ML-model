@@ -2,7 +2,7 @@ import pytest
 import streamlit as st
 from optigrade_helpers import format_student_data
 
-def test_format_student_data():
+def test_format_student_data_basic():
     mock_data = {
         'user_name': 'Jane Doe',
         'user_id': '2023-XYZ',
@@ -18,6 +18,7 @@ def test_format_student_data():
     assert "Jane Doe" in result
     assert "2023-XYZ" in result
     assert "Mathematics - Grade: A" in result
+    assert "Biology - Grade: B+" in result
 
 # 🧪 Fixture to mock session state
 @pytest.fixture
@@ -37,16 +38,13 @@ def mock_session_state(monkeypatch):
 
     return mock_data
 
-# 🚨 Actual test
-def test_format_student_data(mock_session_state):
-    result = format_student_data(mock_data)
+# 🚨 Actual test using fixture data
+def test_format_student_data_from_session(mock_session_state):
+    result = format_student_data(mock_session_state)
 
-    # 🔍 Assert expected substrings in result
     assert "Jane Doe" in result
     assert "2023-XYZ" in result
     assert "3.75" in result
     assert "Mathematics - Grade: A" in result
     assert "Biology - Grade: B+" in result
-
-    # 📏 Sanity check: string length reasonable
     assert len(result) > 50
