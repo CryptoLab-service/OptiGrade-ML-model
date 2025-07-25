@@ -21,6 +21,7 @@
 - 🚀 Powered by machine learning
 - 📊 Deployed via [Streamlit Model Engine](https://optigrade.streamlit.app/)
 - 🎨 Designed as a responsive mobile prototype for intuitive student interaction
+- 📊 Project documentation via [Zoe Tech Hub](https://zoetechhub.name.ng/)
 - 💻 Solo-developed, open-source, and ready to evolve through collaboration
 
 ---
