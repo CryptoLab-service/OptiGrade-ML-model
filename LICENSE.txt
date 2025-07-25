@@ -2,25 +2,16 @@ MIT License
 
 Copyright (c) 2025 OptiGrade (John Oluwalowo)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
 1. Academic Use Clause: 
-   The Software may be freely used for academic and research purposes by 
-   students, educators, and researchers at accredited educational institutions.
+   The Software may be freely used for academic and research purposes by students, educators, and researchers at accredited educational institutions.
 
 2. Commercial Use Restrictions:
-   For commercial use or integration, express written permission must be 
-   obtained from the copyright holder (OptiGrade). Commercial entities may 
-   contact oluwalowojohn@gmail.com for licensing agreements.
+   For commercial use or integration, express written permission must be obtained from the copyright holder (OptiGrade). Commercial entities may contact oluwalowojohn@gmail.com for licensing agreements.
 
 3. Patent Grant:
-   This license includes a limited patent grant only for implementations 
-   specifically described in the Software's documentation.
+   This license includes a limited patent grant only for implementations specifically described in the Software's documentation.
 
 4. Attribution Requirement:
    Any public use or distribution of the Software must include:
@@ -29,10 +20,4 @@ furnished to do so, subject to the following conditions:
    - The copyright notice
 
 5. No Warranty:
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-   SOFTWARE.
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
