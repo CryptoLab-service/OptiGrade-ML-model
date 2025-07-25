@@ -105,7 +105,7 @@ streamlit run optigrade_app.py
 ## Build the Docker Image
 ```bash
 docker build -t optigrade-app .
-
+```
 
 ---
 
