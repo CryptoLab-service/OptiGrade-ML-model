@@ -1,5 +1,7 @@
 import pytest
 import streamlit as st
+from optigrade_helpers import format_student_data
+
 def test_format_student_data():
     mock_data = {
         'user_name': 'Jane Doe',
