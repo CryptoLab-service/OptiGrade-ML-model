@@ -39,7 +39,7 @@ def mock_session_state(monkeypatch):
 
 # 🚨 Actual test
 def test_format_student_data(mock_session_state):
-    result = format_student_data()
+    result = format_student_data(mock_data)
 
     # 🔍 Assert expected substrings in result
     assert "Jane Doe" in result
