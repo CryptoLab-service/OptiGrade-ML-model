@@ -3,6 +3,7 @@
 [![Streamlit](https://img.shields.io/badge/Framework-Streamlit-red)](https://streamlit.io/)
 ![AI Powered](https://img.shields.io/badge/Powered%20by-AI-brightgreen?logo=OpenAI&style=for-the-badge&labelColor=black)
 ![Accuracy](https://img.shields.io/badge/Accuracy-Up%20to%2092%25-blueviolet?style=for-the-badge&logo=Speedtest)
+[![Streamlit App](https://img.shields.io/badge/Open-App-green?logo=streamlit)](https://optigrade.streamlit.app/)
 
 [![License](https://img.shields.io/github/license/CryptoLab-service/OptiGrade-ML-model)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/CryptoLab-service/OptiGrade-ML-model?style=social)](https://github.com/CryptoLab-service/OptiGrade-ML-model/stargazers)
