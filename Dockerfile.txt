@@ -1,0 +1,29 @@
+# Use lightweight Python 3.12 base
+FROM python:3.12-slim
+
+# Set working directory inside container
+WORKDIR /optigrade
+
+# Install OS dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy all project files
+COPY . .
+
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy .env.example to .env if it doesn’t exist (basic shell logic)
+RUN [ ! -f ".env" ] && cp .env.example .env || true
+
+# Run model training if file exists
+RUN [ -f "models/train_model.py" ] && python models/train_model.py || true
+
+# Expose Streamlit’s default port
+EXPOSE 8501
+
+# Launch the app!
+CMD ["streamlit", "run", "optigrade_app.py"]

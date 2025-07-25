@@ -1,0 +1,18 @@
+{
+  "projectName": "OptiGrade-ML-model",
+  "projectOwner": "CryptoLab-service",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": ["README.md"],
+  "imageSize": 100,
+  "commit": true,
+  "contributors": [
+    {
+      "login": "CryptoLab-service",
+      "name": "Toluwalope John Oluwalowo",
+      "avatar_url": "https://avatars.githubusercontent.com/u/121734918?v=4",
+      "profile": "https://github.com/CryptoLab-service",
+      "contributions": ["code", "ideas", "design", "doc", "infra", "tool", "projectManagement"]
+    }
+  ]
+}

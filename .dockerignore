@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pkl
+*.env
+optigrade_env/
+venv/
+*.bat
+*.ps1

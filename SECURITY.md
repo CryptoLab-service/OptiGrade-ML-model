@@ -2,46 +2,61 @@
 
 ## Supported Versions
 
-The following versions of OptiGrade App receive security updates:
+The following versions of OptiGrade receive security updates:
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 6.x     | ✅ Supported |
-| 5.x     | ✅ Supported |
-| 4.x     | ❌ Not Supported |
-| < 4.0   | ❌ Not Supported |
-
-Older versions are **not maintained**, and users should upgrade to the latest release for security fixes.
+| 2.x     | ✅ Active support |
+| 1.x     | ⚠️ Security fixes only |
+| < 1.0   | ❌ Not supported |
 
 ## Reporting a Vulnerability
 
-We take security seriously. If you discover a vulnerability, please follow the steps below:
+We take security seriously. If you discover a vulnerability, please follow responsible disclosure:
 
-- **Contact Us**: Email **oluwalowojohn@gmail.com** with detailed information.
-- **GitHub Issues**: Open a **private issue** (if enabled) for security-related discussions.
-- **Response Time**: We aim to acknowledge reports within **48 hours**.
-- **Next Steps**: If accepted, we will provide mitigation plans, patches, and release updates.
+1. **Email Us**: Contact **oluwalowojohn@gmail.com** with:
+   - Detailed vulnerability description
+   - Steps to reproduce
+   - Potential impact assessment
+   - Any suggested fixes
 
-⚠️ **Do not disclose vulnerabilities publicly** until a fix is available.
+2. **Expectations**:
+   - We acknowledge reports within **48 hours**
+   - Provide regular status updates
+   - Work together on mitigation strategy
+   - Public disclosure coordinated after fix is released
+
+⚠️ **Do not disclose vulnerabilities publicly** until we've had reasonable time to address them.
 
 ## Security Best Practices
 
-### **Code Security**
-- Contributions must pass **static code analysis** before merging.
-- Follow **secure coding practices** to prevent SQL injection, XSS, and other vulnerabilities.
-- Dependencies are **regularly updated** to mitigate security risks.
+### Code Security
+- All contributions undergo **static code analysis** (Bandit/Semgrep)
+- Secure coding practices enforced (OWASP Top 10 compliance)
+- Dependencies monitored via **Dependabot**
+- Secrets scanning with **GitGuardian**
 
-### **Data Protection**
-- **User data encryption** is enforced at all levels.
-- **Access control** measures prevent unauthorized data access.
-- No sensitive credentials should be **hard-coded in the repository**.
+### Data Protection
+- **End-to-end encryption** for sensitive user data
+- **Zero-trust architecture** implementation
+- **RBAC controls** for data access
+- Never store credentials in code/repos
 
-### **API & Authentication**
-- We implement **OAuth 2.0** and **JWT tokens** for authentication.
-- API endpoints undergo **security reviews** before deployment.
+### API Security
+- **JWT authentication** with short-lived tokens
+- **Strict input validation** on all endpoints
+- **Rate limiting** on public APIs
+- Regular penetration testing
 
-## Responsible Disclosure
+## Vulnerability Management
 
-We encourage ethical disclosure practices and reward contributors who responsibly report security issues. If you find a critical vulnerability, reach out to us through **proper channels**.
+- Critical vulnerabilities: Patched within **72 hours**
+- High-risk vulnerabilities: Addressed within **1 week**
+- Medium/low vulnerabilities: Fixed in next scheduled release
 
----
+## Rewards
+
+We appreciate ethical security research through:
+- Public acknowledgement (with permission)
+- Exclusive contributor badges
+- Special mention in release notes
