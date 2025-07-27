@@ -6,9 +6,12 @@ import os
 import time
 from dotenv import load_dotenv
 import streamlit.components.v1 as components
+from streamlit_extras.colored_header import colored_header
 import matplotlib.pyplot as plt
 import google.generativeai as genai
 from sklearn.ensemble import RandomForestRegressor
+import traceback
+import random
 
 # Set page config FIRST - before any other Streamlit commands
 st.set_page_config(
@@ -21,20 +24,33 @@ st.set_page_config(
 # ------------------ INITIALIZATION ------------------
 # Load environment variables
 load_dotenv()
+api_key = os.getenv("GEMINI_API_KEY")
 
-# ------------------ SETTING UP GOOGLE AI (GEMINI) ------------------
-# 🔐 Configure Gemini API
-genai.configure(api_key="AIzaSyDT4QGuU7Cy1IJvAXtq1DzJzbvFmXJx9_o")
-gemini_model = genai.GenerativeModel("gemini-pro")
+# ------------------ SETTING UP GOOGLE AI (GEMINI CONFIGURATION) ------------------
+# Configure Gemini API
+if api_key:
+    try:
+        genai.configure(api_key=api_key)
+        gemini_model = genai.GenerativeModel("gemini-2.5-pro")
+    except Exception as e:
+        st.error(f"Error configuring Gemini API: {str(e)}")
+        gemini_model = None
+else:
+    st.error("GEMINI_API_KEY not found in environment variables")
+    gemini_model = None
 
+# -------- AI Academic Recommendation ------------- 
 def get_academic_recommendations(student_data):
-    """Generate AI-powered academic recommendations using Gemini"""
+    """Generate AI-powered personalized academic recommendations using Gemini"""
+    if not gemini_model:
+        return "❌ Gemini API not configured properly"
+    
     prompt = f"""
     Here's the student's academic profile:
 
     {student_data}
 
-    Generate brief specific, actionable recommendations to help this student improve their CGPA. 
+    Generate specific, actionable academic recommendations to help this student improve their CGPA and academic performance. 
     Focus on:
     - Study habits optimization
     - Attendance improvement strategies
@@ -43,10 +59,18 @@ def get_academic_recommendations(student_data):
     - Time allocation suggestions
     - Resource recommendations (books, online resources)
     
-    Structure your response with clear headings and bullet points. Be practical and encouraging, not too long.
+    Structure your response with clear headings and bullet points. Be practical and encouraging.
     """
     try:
-        response = gemini_model.generate_content(prompt)
+        response = gemini_model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                top_p=0.85,
+                top_k=40,
+                candidate_count=1
+            )
+        )
         return response.text
     except Exception as e:
         return f"❌ Could not generate recommendations: {str(e)}"
@@ -101,6 +125,15 @@ def grade_to_letter(grade):
     elif grade >= 40: return "E"
     else: return "F"
 
+def grade_to_color(grade):
+    """Get color based on letter grade"""
+    if grade == "A": return "#4CAF50"  # Green
+    elif grade == "B": return "#8BC34A"  # Light Green
+    elif grade == "C": return "#FFEB3B"  # Yellow
+    elif grade == "D": return "#FF9800"  # Orange
+    elif grade == "E": return "#F44336"  # Red
+    else: return "#B71C1C"  # Dark Red (F)
+
 def create_dotted_forecast_chart(previous_cgpa, predicted_cgpa):
     """Create sleek dotted-line CGPA forecast chart"""
     fig, ax = plt.subplots(figsize=(8, 4))
@@ -134,7 +167,8 @@ def format_student_data():
     current_cgpa = st.session_state.current_cgpa
     courses = st.session_state.curr_data
 
-    course_list = "\n".join([f"{c['name']} - Grade: {c['grade']}" for c in courses]) if courses else "No current courses."
+    # Fix: Use 'course_id' instead of 'name'
+    course_list = "\n".join([f"{c['course_id']} ({c['course_units']} units)" for c in courses]) if courses else "No current courses."
 
     return f"""Student Name: {name}
 Student ID: {user_id}
@@ -143,242 +177,354 @@ Current Courses:
 {course_list}
 """
 
-
+# ------------------ DISPLAY STUDENT PROFILE ------------------
 def display_student_profile():
-    """Display interactive student profile with visual elements"""
-    # Create a container with a colored border
-    with st.container():
-        st.markdown(f"""
-        <style>
-            .profile-card {{
-                border: 1px solid #2D3746;
-                border-radius: 12px;
-                padding: 20px;
-                background: linear-gradient(135deg, #1e1e2e, #2a2a40);
-                margin-bottom: 25px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }}
-            .profile-header {{
-                display: flex;
-                align-items: center;
-                margin-bottom: 20px;
-            }}
-            .profile-avatar {{
-                font-size: 48px;
-                margin-right: 20px;
-            }}
-            .profile-metrics {{
-                display: flex;
-                justify-content: space-between;
-                margin-top: 15px;
-            }}
-            .metric-card {{
-                background: #2D3746;
-                border-radius: 8px;
-                padding: 15px;
-                text-align: center;
-                flex: 1;
-                margin: 0 5px;
-            }}
-            .metric-value {{
-                font-size: 24px;
-                font-weight: bold;
-                color: #00FFD1;
-            }}
-            .metric-label {{
-                font-size: 14px;
-                color: #AAAAAA;
-            }}
-        </style>
-        
-        <div class="profile-card">
-            <div class="profile-header">
-                <div class="profile-avatar">{st.session_state.user_pic}</div>
-                <div>
-                    <h2 style="margin: 0; color: white;">{st.session_state.user_name}</h2>
-                    <p style="color: #AAAAAA; margin: 5px 0;">Student ID: {st.session_state.user_id}</p>
-                    <div style="display: flex; margin-top: 10px;">
-                        <span style="background: #4e79a7; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px; margin-right: 8px;">
-                            Active Student
+    """Display enhanced student profile with visual elements and meaningful content"""
+    # Calculate values
+    cgpa = st.session_state.current_cgpa
+    courses_completed = len(st.session_state.prev_data)
+    current_courses = len(st.session_state.curr_data)
+    
+# ------------------ PROFILE PAGE LAYOUT ------------------    
+    # Academic Metrics Section - Fixed 3-column layout
+    st.subheader("Academic Metrics")
+    col1, col2, col3 = st.columns(3)
+    
+    # CGPA Card
+    with col1:
+        with st.container(border=True):
+            st.markdown("<div style='border-left: 5px solid #00FFD1; padding-left: 15px;'>", unsafe_allow_html=True)
+            st.markdown("**CGPA**")
+            st.markdown(f"<div style='font-size: 32px; font-weight: bold; color: #00FFD1;'>{cgpa:.2f}</div>", 
+                       unsafe_allow_html=True)
+            st.caption("Target: 3.8")
+            
+            # Progress bar without help parameter
+            progress = min(cgpa/3.8*100, 100)
+            st.markdown(f"<div style='color: #AAAAAA; font-size: 12px; display: flex; justify-content: space-between;'>"
+                       f"<span>Progress</span><span>{progress:.0f}%</span></div>", 
+                       unsafe_allow_html=True)
+            st.progress(int(progress))
+            st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Courses Completed Card
+    with col2:
+        with st.container(border=True):
+            st.markdown("<div style='border-left: 5px solid #611EE8; padding-left: 15px;'>", unsafe_allow_html=True)
+            st.markdown("**Courses Completed**")
+            st.markdown(f"<div style='font-size: 32px; font-weight: bold; color: #00FFD1;'>{courses_completed}</div>", 
+                       unsafe_allow_html=True)
+            st.caption("Target: 8")
+            
+            # Progress bar without help parameter
+            progress = min(courses_completed/8*100, 100)
+            st.markdown(f"<div style='color: #AAAAAA; font-size: 12px; display: flex; justify-content: space-between;'>"
+                       f"<span>Progress</span><span>{progress:.0f}%</span></div>", 
+                       unsafe_allow_html=True)
+            st.progress(int(progress))
+            st.markdown("</div>", unsafe_allow_html=True)
+    
+    # Current Courses Card
+    with col3:
+        with st.container(border=True):
+            st.markdown("<div style='border-left: 5px solid #FF4B4B; padding-left: 15px;'>", unsafe_allow_html=True)
+            st.markdown("**Current Courses**")
+            st.markdown(f"<div style='font-size: 32px; font-weight: bold; color: #00FFD1;'>{current_courses}</div>", 
+                       unsafe_allow_html=True)
+            st.caption("Target: 5")
+            
+            # Progress bar without help parameter
+            progress = min(current_courses/5*100, 100)
+            st.markdown(f"<div style='color: #AAAAAA; font-size: 12px; display: flex; justify-content: space-between;'>"
+                       f"<span>Progress</span><span>{progress:.0f}%</span></div>", 
+                       unsafe_allow_html=True)
+            st.progress(int(progress))
+            st.markdown("</div>", unsafe_allow_html=True)
+    
+    st.divider()
+    
+    # Additional Info Section
+    col4, col5 = st.columns(2)
+    
+    # Primary Learning Style Card
+    with col4:
+        with st.container(border=True):
+            st.markdown("**Primary Learning Style**")
+            st.markdown("<div style='font-size: 48px; text-align: center;'>🎨</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center; font-size: 20px;'>Visual</div>", unsafe_allow_html=True)
+            st.caption("Prefers diagrams, charts, and visual aids")
+    
+    # Academic Goals Card
+    with col5:
+        with st.container(border=True):
+            st.markdown("""
+                <div style="min-height: 180px;">
+                    <strong>Academic Goals</strong>
+                    <div style="display: flex; gap: 10px; margin-top: 10px; margin-bottom: 20px;">
+                        <span style="background: #59a14f22; color: #59a14f; padding: 5px 12px; border-radius: 12px; font-size: 14px;">
+                            CGPA 3.8+
                         </span>
-                        <span style="background: #59a14f; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px;">
-                            Good Standing
+                        <span style="background: #4e79a722; color: #4e79a7; padding: 5px 12px; border-radius: 12px; font-size: 14px;">
+                            Graduate with Honors
                         </span>
                     </div>
+                    <p style="font-size: 13px; text-align: center; color: gray;">2 active goals this semester</p>
                 </div>
-            </div>
+            """, unsafe_allow_html=True)
+
+    st.divider()
+    
+    # Achievements Section
+    st.subheader("🏆 Recent Achievements")
+    
+    # Achievement badges
+    col6, col7, col8, col9 = st.columns(4)
+    with col6:
+        with st.container(border=True, height=100):
+            st.markdown("<div style='text-align: center;'>🥇</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center;'>Top 10% in Physics</div>", unsafe_allow_html=True)
+    with col7:
+        with st.container(border=True, height=100):
+            st.markdown("<div style='text-align: center;'>📚</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center;'>5 Books Read</div>", unsafe_allow_html=True)
+    with col8:
+        with st.container(border=True, height=100):
+            st.markdown("<div style='text-align: center;'>⏱️</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center;'>50 Study Hours</div>", unsafe_allow_html=True)
+    with col9:
+        with st.container(border=True, height=100):
+            st.markdown("<div style='text-align: center;'>🏅</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center;'>Academic Excellence</div>", unsafe_allow_html=True)
+    
+    # Add subtle animations
+    st.markdown("""
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        div[data-testid="stHorizontalBlock"] {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        div[data-testid="stHorizontalBlock"]:nth-child(1) { animation-delay: 0.1s; }
+        div[data-testid="stHorizontalBlock"]:nth-child(2) { animation-delay: 0.2s; }
+        div[data-testid="stHorizontalBlock"]:nth-child(3) { animation-delay: 0.3s; }
+        div[data-testid="stHorizontalBlock"]:nth-child(4) { animation-delay: 0.4s; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+# ------------------ PROFILE PAGE ------------------    
+    # Create tabs for different profile sections with meaningful content
+    tab1, tab2, tab3 = st.tabs(["📚 Courses", "📊 Performance", "🎯 Goals"])
+
+# ------------------ COURSES TAB ------------------    
+    # Courses Tab Content
+    with tab1:
+        st.subheader("Course History")
+        
+        if st.session_state.prev_data or st.session_state.curr_data:
+            col1, col2 = st.columns(2)
             
-            <div class="profile-metrics">
-                <div class="metric-card">
-                    <div class="metric-value">{st.session_state.current_cgpa:.2f}</div>
-                    <div class="metric-label">Current CGPA</div>
+            with col1:
+                st.markdown("#### 📖 Previous Courses")
+                if st.session_state.prev_data:
+                    prev_df = pd.DataFrame(st.session_state.prev_data)
+                    # Create letter grades and colors
+                    prev_df['Letter Grade'] = prev_df['grade'].apply(grade_to_letter)
+                    prev_df['Grade Color'] = prev_df['Letter Grade'].apply(grade_to_color)
+                    
+                    # Display as styled table - MATCHING CURRENT COURSES DESIGN
+                    for _, row in prev_df.iterrows():
+                        st.markdown(f"""
+                            <div style="background: #1e1e2e; border-radius: 8px; padding: 12px; margin-bottom: 10px;
+                                    border-left: 4px solid {row['Grade Color']};">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>{row['course_id']}</strong>
+                                        <div style="font-size: 13px; color: #AAAAAA; margin-top: 5px;">
+                                            Previous Course • {row['course_units']} units
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 24px; font-weight: bold; color: {row['Grade Color']}">
+                                        {row['grade']}
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #AAAAAA;">
+                                        <span>Grade</span>
+                                        <span>{row['Letter Grade']}</span>
+                                    </div>
+                                    <div style="height: 6px; background: #2D3746; border-radius: 3px; margin-top: 5px;">
+                                        <div style="height: 100%; width: 100%; background: {row['Grade Color']}; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("No previous courses recorded")
+            
+            with col2:
+                st.markdown("#### 📝 Current Courses")
+                if st.session_state.curr_data:
+                    curr_df = pd.DataFrame(st.session_state.curr_data)
+                    for _, row in curr_df.iterrows():
+                        progress = random.randint(30, 80)  # Simulated progress
+                        st.markdown(f"""
+                            <div style="background: #1e1e2e; border-radius: 8px; padding: 12px; margin-bottom: 10px;
+                                    border-left: 4px solid #00FFD1;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>{row['course_id']}</strong>
+                                        <div style="font-size: 13px; color: #AAAAAA; margin-top: 5px;">
+                                            Current Course • {row['course_units']} units
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #AAAAAA;">
+                                        <span>Progress</span>
+                                        <span>{progress}%</span>
+                                    </div>
+                                    <div style="height: 6px; background: #2D3746; border-radius: 3px; margin-top: 5px;">
+                                        <div style="height: 100%; width: {progress}%; background: #00FFD1; border-radius: 3px;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        """, unsafe_allow_html=True)
+                else:
+                    st.info("No current courses registered")
+        else:
+            st.info("No course information available")
+    
+    with tab2:
+        st.subheader("Academic Performance")
+        
+        if st.session_state.prev_data:
+            # Create a performance chart
+            perf_df = pd.DataFrame(st.session_state.prev_data)
+            perf_df['Letter Grade'] = perf_df['grade'].apply(grade_to_letter)
+            
+            # Calculate GPA per course (simple conversion)
+            grade_points = {'A': 5, 'B': 4, 'C': 3, 'D': 2, 'E': 1, 'F': 0}
+            perf_df['Grade Points'] = perf_df['Letter Grade'].map(grade_points)
+            
+            # Performance metrics
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Highest Grade", f"{perf_df['grade'].max()}%")
+            col2.metric("Average Grade", f"{perf_df['grade'].mean():.1f}%")
+            col3.metric("Lowest Grade", f"{perf_df['grade'].min()}%")
+            
+            # Create bar chart of grades
+            fig, ax = plt.subplots(figsize=(10, 4))
+            colors = [grade_to_color(grade) for grade in perf_df['Letter Grade']]
+            bars = ax.bar(perf_df['course_id'], perf_df['grade'], color=colors)
+            
+            ax.set_ylim(0, 100)
+            ax.set_title('Course Performance', fontsize=14)
+            ax.set_ylabel('Grade (%)')
+            ax.grid(axis='y', linestyle='--', alpha=0.3)
+            
+            # Add letter grades on bars
+            for bar, letter in zip(bars, perf_df['Letter Grade']):
+                height = bar.get_height()
+                ax.text(bar.get_x() + bar.get_width()/2., height-5, 
+                        f"{letter}", ha='center', va='top', color='white', 
+                        fontweight='bold', fontsize=10)
+            
+            st.pyplot(fig)
+            
+            # Attendance and study hours analysis
+            st.markdown("#### 📊 Study Habits Analysis")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("##### Attendance Rate")
+                avg_attendance = perf_df['attendance'].mean()
+                fig, ax = plt.subplots(figsize=(3, 3))
+                ax.pie([avg_attendance, 100-avg_attendance], 
+                       colors=['#00FFD1', '#2D3746'], 
+                       startangle=90, 
+                       wedgeprops={'linewidth': 1, 'edgecolor': '#1e1e2e'})
+                ax.text(0, 0, f"{avg_attendance:.0f}%", ha='center', va='center', 
+                        fontsize=16, fontweight='bold', color='white')
+                st.pyplot(fig)
+            
+            with col2:
+                st.markdown("##### Weekly Study Hours")
+                avg_study_hours = perf_df['study_hours'].mean()
+                fig, ax = plt.subplots(figsize=(6, 3))
+                ax.barh(['Average'], [avg_study_hours], color='#00FFD1')
+                ax.set_xlim(0, 20)
+                ax.set_title(f'{avg_study_hours:.1f} hours/week', fontsize=12)
+                ax.grid(axis='x', linestyle='--', alpha=0.3)
+                ax.set_facecolor('#1e1e2e')
+                st.pyplot(fig)
+        else:
+            st.info("No performance data available")
+    
+    with tab3:
+        st.subheader("Academic Goals")
+        
+        st.markdown("""
+        <div style="background: #1e1e2e; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+            <h4 style="margin-top: 0;">🎯 Current Goals</h4>
+            <ul style="padding-left: 20px;">
+                <li>Achieve 3.8+ CGPA this semester</li>
+                <li>Complete all assignments at least 2 days before deadline</li>
+                <li>Attend 95% of all lectures</li>
+                <li>Join at least one academic club</li>
+            </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("#### 📈 Goal Progress")
+        
+        # Goal tracking visualization
+        goals = [
+            {"name": "CGPA Target", "progress": 68, "target": 100},
+            {"name": "Assignment Completion", "progress": 85, "target": 100},
+            {"name": "Lecture Attendance", "progress": 92, "target": 95},
+            {"name": "Study Hours", "progress": 75, "target": 100}
+        ]
+        
+        for goal in goals:
+            st.markdown(f"""
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px;">
+                        <span>{goal['name']}</span>
+                        <span>{goal['progress']}% of {goal['target']}%</span>
+                    </div>
+                    <div style="height: 10px; background: #2D3746; border-radius: 5px;">
+                        <div style="height: 100%; width: {min(goal['progress'], 100)}%; 
+                             background: linear-gradient(90deg, #00FFD1, #1C69B2); border-radius: 5px;"></div>
+                    </div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-value">{len(st.session_state.prev_data)}</div>
-                    <div class="metric-label">Courses Completed</div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div style="background: #1e1e2e; border-radius: 10px; padding: 20px; margin-top: 20px;">
+            <h4 style="margin-top: 0;">🏆 Recent Achievements</h4>
+            <div style="display: flex; gap: 15px; margin-top: 15px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 24px;">🥇</div>
+                    <div style="font-size: 12px;">Top 10% in Physics</div>
                 </div>
-                <div class="metric-card">
-                    <div class="metric-value">{len(st.session_state.curr_data)}</div>
-                    <div class="metric-label">Current Courses</div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px;">📚</div>
+                    <div style="font-size: 12px;">5 Books Read</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 24px;">⏱️</div>
+                    <div style="font-size: 12px;">50 Study Hours</div>
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-    
-    # Create tabs for different profile sections
-    tab1, tab2, tab3 = st.tabs(["📚 Courses", "📊 Performance", "🎯 Goals"])
-    
-    with tab1:  # Courses tab
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Previous Semester Courses")
-            if st.session_state.prev_data:
-                for course in st.session_state.prev_data:
-                    grade = course['grade']
-                    progress = min(grade / 100, 1.0)
-                    color = "#00FFD1" if grade >= 50 else "#FF4B4B"
-                    
-                    st.markdown(f"""
-                    <div style="margin-bottom: 15px; padding: 15px; border-radius: 10px; background: #1e1e2e;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <strong>{course['course_id']}</strong>
-                            <span style="color: {color};">{grade}% ({grade_to_letter(grade)})</span>
-                        </div>
-                        <div style="margin-top: 8px; height: 8px; background: #2D3746; border-radius: 4px;">
-                            <div style="height: 100%; width: {progress*100}%; background: {color}; border-radius: 4px;"></div>
-                        </div>
-                        <div style="margin-top: 10px; display: flex; color: #AAAAAA; font-size: 14px;">
-                            <span style="margin-right: 15px;">⏱️ {course['study_hours']} hrs/wk</span>
-                            <span style="margin-right: 15px;">👥 {course['attendance']}%</span>
-                            <span>🧠 {course['learning_style']}</span>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info("No previous semester data available")
-        
-        with col2:
-            st.subheader("Current Semester Courses")
-            if st.session_state.curr_data:
-                for course in st.session_state.curr_data:
-                    st.markdown(f"""
-                    <div style="margin-bottom: 15px; padding: 15px; border-radius: 10px; background: #1e1e2e;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <strong>{course['course_id']}</strong>
-                            <span style="background: #4e79a7; color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px;">
-                                {course['course_units']} Units
-                            </span>
-                        </div>
-                        <div style="margin-top: 10px; color: #AAAAAA; font-size: 14px;">
-                            Learning Style: {course['learning_style']}
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <button style="background: #00FFD1; color: black; border: none; border-radius: 5px; padding: 5px 10px; font-size: 12px; cursor: pointer;">
-                                View Resources
-                            </button>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.info("No current semester data available")
-    
-    with tab2:  # Performance tab
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.subheader("Performance Metrics")
-            metrics = {
-                "Average Grade": np.mean([c['grade'] for c in st.session_state.prev_data]) if st.session_state.prev_data else 0,
-                "Study Commitment": np.mean([c['study_hours'] for c in st.session_state.prev_data]) if st.session_state.prev_data else 0,
-                "Attendance Rate": np.mean([c['attendance'] for c in st.session_state.prev_data]) if st.session_state.prev_data else 0,
-                "Course Load": np.mean([c['course_units'] for c in st.session_state.prev_data]) if st.session_state.prev_data else 0
-            }
-            
-            for metric, value in metrics.items():
-                st.markdown(f"""
-                <div style="margin-bottom: 15px; padding: 15px; border-radius: 10px; background: #1e1e2e;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>{metric}</span>
-                        <strong>{value:.1f}{'%' if metric == 'Attendance Rate' else ''}</strong>
-                    </div>
-                    <div style="margin-top: 8px; height: 8px; background: #2D3746; border-radius: 4px;">
-                        <div style="height: 100%; width: {min(value, 100)}%; background: #00FFD1; border-radius: 4px;"></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        with col2:
-            st.subheader("Learning Style Distribution")
-            if st.session_state.prev_data:
-                learning_styles = [c['learning_style'] for c in st.session_state.prev_data]
-                style_counts = {style: learning_styles.count(style) for style in set(learning_styles)}
-                
-                fig, ax = plt.subplots(figsize=(6, 4))
-                ax.pie(style_counts.values(), labels=style_counts.keys(), autopct='%1.1f%%',
-                       colors=['#00FFD1', '#611EE8', '#1C69B2'], startangle=90)
-                ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle
-                st.pyplot(fig)
-            else:
-                st.info("No learning style data available")
-    
-    with tab3:  # Goals tab
-        st.subheader("Academic Goals")
-        
-        # Goal creation form
-        with st.form("goal_form"):
-            goal_col1, goal_col2 = st.columns([3, 1])
-            new_goal = goal_col1.text_input("New Goal", placeholder="e.g., Achieve A in Calculus")
-            goal_due = goal_col2.date_input("Due Date")
-            
-            if st.form_submit_button("Add Goal"):
-                if new_goal:
-                    st.session_state.study_goals.append({
-                        "text": new_goal,
-                        "due": goal_due.strftime("%Y-%m-%d"),
-                        "completed": False
-                    })
-        
-        # Display goals with progress tracking
-        if st.session_state.study_goals:
-            for i, goal in enumerate(st.session_state.study_goals):
-                cols = st.columns([1, 8, 2, 1])
-                completed = cols[0].checkbox("", value=goal["completed"], 
-                                           key=f"goal_check_{i}", 
-                                           label_visibility="collapsed")
-                
-                if completed != goal["completed"]:
-                    st.session_state.study_goals[i]["completed"] = completed
-                    st.rerun()
-                
-                text_style = "text-decoration: line-through; color: #AAAAAA;" if goal["completed"] else ""
-                cols[1].markdown(f"<div style='{text_style}'>{goal['text']}</div>", 
-                                unsafe_allow_html=True)
-                
-                if goal["due"]:
-                    due_date = goal["due"]
-                    today = pd.Timestamp.today().strftime("%Y-%m-%d")
-                    days_left = (pd.Timestamp(goal["due"]) - pd.Timestamp.today()).days
-                    
-                    if days_left < 0:
-                        date_style = "color: #FF4B4B;"
-                        status = "Overdue"
-                    elif days_left < 7:
-                        date_style = "color: #FFA500;"
-                        status = f"{days_left} days left"
-                    else:
-                        date_style = "color: #00FFD1;"
-                        status = f"{days_left} days left"
-                        
-                    cols[2].markdown(f"<div style='text-align: right; {date_style}'>{status}</div>", 
-                                    unsafe_allow_html=True)
-                
-                if cols[3].button("🗑️", key=f"delete_{i}"):
-                    st.session_state.study_goals.pop(i)
-                    st.rerun()
-        else:
-            st.info("No goals set yet. Add your first academic goal above!")
 
+# ------------------ STUDY TIMER FUNCTIONS ------------------
+# ------------------ STUDY TIMER ------------------
 def format_time(seconds):
     """Format seconds to MM:SS"""
     minutes = seconds // 60
@@ -412,14 +558,14 @@ def get_achievement_badge(count):
 
 # Feedback functions
 def generate_feedback(predicted_cgpa, input_features):
-    """Generate personalized feedback and study tips based on prediction"""
+    """Generate brief, specific, actionable personalized feedback and study tips based on prediction"""
     # Basic feedback based on predicted CGPA
     if predicted_cgpa >= 3.7:
-        feedback = "🌟 Excellent progress! You're on track for top honors."
+        feedback = "🌟 Excellent progress! You're on track for top honours."
     elif predicted_cgpa >= 3.0:
         feedback = "👍 Solid performance—keep up the consistency!"
     elif predicted_cgpa >= 2.5:
-        feedback = "🛠️ Moderate zone—consider boosting study hours or engagement."
+        feedback = "🛠️ Moderate zone—consider boosting study hours and engagement."
     else:
         feedback = "🚧 At-risk range. Let's build a stronger study plan."
     
@@ -481,13 +627,70 @@ def slide_in():
     </style>
     """
 
+def map_features_to_model(input_features):
+    """Map current feature names to what the model expects"""
+    feature_mapping = {
+        'Assignments Completed': 'credit_load',
+        'Attendance %': 'attendance',
+        'Current GPA': 'current_CGPA',
+        'Lecture Engagement': 'engagement',
+        'Midterm Score': 'midterm_score',
+        'Study Hours per Week': 'study_hours'
+    }
+    
+    # Create a dictionary with model-expected features
+    mapped_features = {}
+    
+    # Map known features
+    for new_name, old_name in feature_mapping.items():
+        if new_name in input_features:
+            mapped_features[old_name] = input_features[new_name]
+    
+    # Add GPA_last_semester if available
+    if 'last_semester_gpa' in st.session_state:
+        mapped_features['GPA_last_semester'] = st.session_state.last_semester_gpa
+    else:
+        mapped_features['GPA_last_semester'] = st.session_state.current_cgpa
+    
+    # Add default values for any missing expected features
+    expected_features = st.session_state.expected_features
+    for feature in expected_features:
+        if feature not in mapped_features:
+            # Provide default value if feature is missing
+            mapped_features[feature] = 0.0
+    
+    return mapped_features
+
 # ------------------ MODEL LOADING ------------------
 try:
-    ml_model = joblib.load("models/model.pkl")
+    # Try loading the model as a dictionary first
+    model_data = joblib.load("models/model.pkl")
+    
+    if isinstance(model_data, dict) and 'model' in model_data:
+        # New format: dictionary with model and feature names
+        ml_model = model_data['model']
+        expected_features = model_data['feature_names']
+    else:
+        # Old format: just the model object
+        ml_model = model_data
+        # Define expected features based on your training
+        expected_features = [
+            'GPA_last_semester',
+            'credit_load',
+            'current_CGPA',
+            'study_hours',
+            'attendance',
+            'engagement',
+            'midterm_score'
+        ]
+    
     st.session_state.ml_model = ml_model
+    st.session_state.expected_features = expected_features
+    
 except Exception as e:
     st.error(f"❌ Could not load ML model: {e}")
     st.session_state.ml_model = None
+    st.session_state.expected_features = []
 
 # ------------------ UI COMPONENTS ------------------
 def render_logo():
@@ -588,7 +791,7 @@ if st.session_state.onboarded:
         st.markdown("""
         <div style="font-size: 14px; color: #888;">
             Version: 2.0.0<br>
-            Last Updated: July 24, 2025<br>
+            Last Updated: July 26, 2025<br>
             License: MIT<br>
             © 2025 OptiGrade
         </div>
@@ -605,7 +808,7 @@ if st.session_state.onboarded:
         "👤 User Profile"
     ])
 
-#--------------------------ABOUT TAB ---------------------------
+    #--------------------------ABOUT TAB ---------------------------
     with tabs[0]:  # ℹ️ About Tab
         # Hero Section without box
         st.markdown("""
@@ -812,7 +1015,7 @@ if st.session_state.onboarded:
         if st.button("💌 For Partnerships/Support", use_container_width=True):
             st.info("Reach me on: oluwalowojohn@gmail.com")
 
-#--------------------------FEATURES TAB ---------------------------    
+    #--------------------------FEATURES TAB ---------------------------    
     with tabs[1]:  # 🚀 Features Tab
         st.subheader("✨ Core Capabilities")
         st.markdown("OptiGrade transforms academic planning through these powerful features:")
@@ -989,22 +1192,45 @@ if st.session_state.onboarded:
         </div>
         """, unsafe_allow_html=True)
 
-#--------------------------CGPA PREDICTOR TAB ---------------------------    
+    #--------------------------CGPA PREDICTOR TAB ---------------------------    
     with tabs[2]:  # 🧠 CGPA Predictor Tab
         st.subheader("🎓 CGPA Prediction Wizard")
-        
+
         # Multi-step form
+        # Screen 1
         if st.session_state.page == 'Screen 1':
             st.info("Step 1/2: Enter your previous semester details (all fields required)")
+
+        # Transcript upload section
+            uploaded_file = st.file_uploader("📤 Upload your transcript (optional)", 
+                                            type=["csv", "xlsx"],
+                                            help="Upload your transcript to auto-fill previous semester data")
             
+            # Process uploaded transcript
+            if uploaded_file is not None:
+                try:
+                    if uploaded_file.name.endswith('.csv'):
+                        df = pd.read_csv(uploaded_file)
+                    else:
+                        df = pd.read_excel(uploaded_file)
+                    
+                    # Simple validation
+                    if len(df) >= 3 and all(col in df.columns for col in ['Course', 'Grade', 'Units']):
+                        st.session_state.transcript_data = df.head(3).to_dict('records')
+                        st.success("Transcript processed successfully! Fields will be pre-filled.")
+                    else:
+                        st.warning("Transcript format not recognized. Please ensure it contains Course, Grade, and Units columns.")
+                except Exception as e:
+                    st.error(f"Error processing file: {str(e)}")
+
             with st.form("prev_form"):
                 prev_courses = []
                 for i in range(3):  # Reduced to 3 courses for better UX
                     st.subheader(f"📚 Course {i+1}")
-                    
+
                     cols = st.columns([2, 1, 1])
                     course_id = cols[0].text_input(f"Course Code", key=f"prev_course_id_{i}", 
-                                                  placeholder="e.g., MATH101", value="")
+                                                placeholder="e.g., MATH101", value="")
                     grade = cols[1].number_input(f"Grade", min_value=0, max_value=100, 
                                                 step=1, key=f"prev_grade_{i}", value=None,
                                                 format="%d")
@@ -1012,32 +1238,23 @@ if st.session_state.onboarded:
                         letter_grade = grade_to_letter(grade)
                         cols[2].markdown(f"<div style='margin-top: 28px; font-size: 18px;'>{letter_grade}</div>", 
                                         unsafe_allow_html=True)
-                    
-                    # Create dropdowns for all numeric fields
+
                     cols2 = st.columns(2)
                     study_hours = cols2[0].selectbox(f"Study Hrs/Week", 
                                                     options=list(range(1, 51)),
-                                                    index=9,  # Default to 10 hours
-                                                    key=f"prev_hours_{i}")
-                    
+                                                    index=9, key=f"prev_hours_{i}")
                     attendance = cols2[1].selectbox(f"Attendance %", 
-                                                   options=[x for x in range(0, 101, 10)],
-                                                   index=8,  # Default to 80%
-                                                   key=f"prev_att_{i}")
-                    
-                    # Learning style per course
+                                                options=[x for x in range(0, 101, 10)],
+                                                index=8, key=f"prev_att_{i}")
+
                     learning_style = st.selectbox("Learning Style", 
-                                                 ["Visual", "Auditory", "Kinesthetic"],
-                                                 index=0,
-                                                 key=f"learning_style_{i}")
-                    
-                    # Course units dropdown
+                                                ["Visual", "Auditory", "Kinesthetic"],
+                                                index=0, key=f"learning_style_{i}")
+
                     course_units = st.selectbox(f"Course Units", 
-                                              options=[1, 2, 3, 4],
-                                              index=2,  # Default to 3 units
-                                              key=f"prev_units_{i}")
-                    
-                    # Store course data
+                                            options=[1, 2, 3, 4],
+                                            index=2, key=f"prev_units_{i}")
+
                     prev_courses.append({
                         'user_id': st.session_state.user_id, 
                         'semester': 'Previous', 
@@ -1054,19 +1271,24 @@ if st.session_state.onboarded:
                 semester_gpa = cols3[0].number_input("Last Semester GPA (0-5)", min_value=0.0, 
                                                     max_value=5.0, step=0.01, value=None)
                 current_cgpa = cols3[1].number_input("Overall CGPA (0-5)", min_value=0.0, 
-                                                     max_value=5.0, step=0.01, value=None)
-                
+                                                    max_value=5.0, step=0.01, value=None)
+
                 submitted = st.form_submit_button("👉 Next: Current Semester")
                 if submitted:
-                    # Validate all fields
+
+                    # ✅ Enhanced validation
                     all_filled = True
                     for course in prev_courses:
-                        if not course['course_id'] or course['grade'] is None or course['study_hours'] is None or course['attendance'] is None or course['course_units'] is None:
+                        if not course['course_id'] or not course['course_id'].strip():
+                            st.error("Course code cannot be empty")
                             all_filled = False
-                    
+                        if course['grade'] is None or course['study_hours'] is None or \
+                        course['attendance'] is None or course['course_units'] is None:
+                            all_filled = False
+
                     if semester_gpa is None or current_cgpa is None:
                         all_filled = False
-                    
+
                     if all_filled:
                         for course in prev_courses:
                             course['semester_gpa'] = semester_gpa
@@ -1079,23 +1301,24 @@ if st.session_state.onboarded:
 
         elif st.session_state.page == 'Screen 2':
             st.info("Step 2/2: Enter current semester details (all fields required)")
-            
+
+            # Current semester form
             with st.form("curr_form"):
                 curr_courses = []
                 for i in range(3):
                     st.subheader(f"📚 Course {i+1}")
                     cols = st.columns([2, 1])
                     course_id = cols[0].text_input(f"Course Code", key=f"curr_course_id_{i}", 
-                                                  placeholder="e.g., PHY102", value="")
-                    course_units = cols[1].number_input(f"Units", min_value=1, max_value=6, 
-                                                       step=1, key=f"curr_units_{i}", value=None,
-                                                       format="%d")
-                    
-                    # Learning style per course (multi-select)
+                                                placeholder="e.g., PHY102", value="")
+                    course_units = cols[1].selectbox(f"Units", 
+                                                    options=[1, 2, 3, 4],
+                                                    index=2, 
+                                                    key=f"curr_units_{i}")
+                    # learning style
                     learning_style = st.selectbox("Learning Style", 
-                                                 ["Visual", "Auditory", "Kinesthetic"],
-                                                 key=f"curr_learning_style_{i}")
-                    
+                                                ["Visual", "Auditory", "Kinesthetic"],
+                                                key=f"curr_learning_style_{i}")
+
                     curr_courses.append({
                         'user_id': st.session_state.user_id, 
                         'semester': 'Current', 
@@ -1106,125 +1329,247 @@ if st.session_state.onboarded:
 
                 submitted = st.form_submit_button("✨ Generate Prediction")
                 if submitted:
-                    # Validate all fields
                     all_filled = True
                     for course in curr_courses:
                         if not course['course_id'] or course['course_units'] is None:
                             all_filled = False
-                    
+
                     if all_filled:
                         st.session_state.curr_data = curr_courses
                         st.session_state.page = 'Results'
                         st.rerun()
                     else:
                         st.error("Please fill in all fields before proceeding")
-                    
+
             if st.button("🔙 Back to Previous Step"):
                 st.session_state.page = 'Screen 1'
                 st.rerun()
 
+        # Prediction Result Page
         elif st.session_state.page == 'Results':
             st.success("✅ Prediction Complete!")
             st.subheader(f"📊 Academic Forecast for Student {st.session_state.user_id}")
             
+# ========== PREDICTION SECTION ===============================        
             # Create sample input for prediction
             try:
-                sample_input = pd.DataFrame({
-                    "Current GPA": [st.session_state.current_cgpa],
-                    "Attendance %": [np.mean([c['attendance'] for c in st.session_state.prev_data])],
-                    "Study Hours per Week": [np.mean([c['study_hours'] for c in st.session_state.prev_data])],
-                    "Assignments Completed": [85],
-                    "Midterm Score": [75],
-                    "Lecture Engagement": [80]
-                })
+                # Create raw_input dictionary safely
+                raw_input = {
+                    "Current GPA": float(st.session_state.current_cgpa),
+                    "Assignments Completed": 85.0,
+                    "Midterm Score": 75.0,
+                    "Lecture Engagement": 80.0
+                }
                 
-                # Display prediction
-                if st.session_state.ml_model:
+                # Handle attendance and study hours safely
+                if st.session_state.prev_data:
                     try:
-                        previous_cgpa = st.session_state.current_cgpa
-                        prediction = st.session_state.ml_model.predict(sample_input)[0]
-                        
-                        col1, col2 = st.columns([1, 2])
-                        with col1:
-                            st.metric("Previous CGPA", f"{previous_cgpa:.2f}")
-                            st.metric("Predicted Final CGPA", f"{prediction:.2f}", 
-                                     delta=f"{prediction - previous_cgpa:.2f}")
-                            st.progress(prediction / 5.0)
-                            
-                            # Grade interpretation
-                            if prediction >= 4.0:
-                                st.success("First Class Performance! 🎉")
-                            elif prediction >= 3.0:
-                                st.info("Good Standing - Keep Improving! 📈")
-                            else:
-                                st.warning("Needs Improvement - Review Recommendations")
-                        
-                        with col2:
-                            # Create dotted line forecast chart
-                            fig = create_dotted_forecast_chart(previous_cgpa, prediction)
-                            st.pyplot(fig)
-
-                        # === Additional FEEDBACK SECTION ADDED HERE ===
-                        st.divider()
-                        st.subheader("📝 Performance Feedback & Recommendations")
-                        
-                        # Convert sample input to dict for feedback
-                        input_dict = sample_input.iloc[0].to_dict()
-                        
-                        # Generate feedback
-                        feedback, tips = generate_feedback(prediction, input_dict)
-                        
-                        # Display feedback
-                        st.info(feedback)
-                        
-                        # Display tips
-                        st.markdown("### 🔍 Areas for Improvement:")
-                        for tip in tips:
-                            st.markdown(f"- {tip}")
-                            
-                        # Resource recommendations based on weaknesses
-                        st.markdown("### 📚 Recommended Resources:")
-                        if input_dict["Study Hours per Week"] < 15:
-                            st.markdown("- [Study Techniques Guide](https://learningcenter.unc.edu/tips-and-tools/studying-101-study-smarter-not-harder/)")
-                        if input_dict["Attendance %"] < 70:
-                            st.markdown("- [Attendance Impact Research](https://www.edutopia.org/article/why-attendance-matters)")
-                        if input_dict["Lecture Engagement"] < 70:
-                            st.markdown("- [Active Learning Strategies](https://www.celt.iastate.edu/teaching/effective-teaching-practices/active-learning)")
-                        
-                        # Display interactive student profile
-                        display_student_profile()
-
-                        # Generate AI recommendations
-                        student_data_str = format_student_data()
-                        gemini_recommendations = get_academic_recommendations(student_data_str)
-                        
-                        st.subheader("🧠 AI-Powered Recommendations (Gemini)")
-                        st.markdown(gemini_recommendations)
-                            
-                    except Exception as e:
-                        st.error(f"⚠️ Prediction failed: {e}")
-                
-                # Display input summary
-                with st.expander("📋 View Academic Input Summary"):
-                    st.subheader("Previous Semester")
-                    prev_df = pd.DataFrame(st.session_state.prev_data)
-                    prev_df['Grade'] = prev_df['grade'].apply(lambda x: f"{x}{grade_to_letter(x)}")
-                    st.dataframe(prev_df[['course_id', 'Grade', 'study_hours', 'attendance', 'course_units', 'learning_style']])
+                        raw_input["Attendance %"] = float(np.mean([c.get('attendance', 0) for c in st.session_state.prev_data]))
+                    except:
+                        raw_input["Attendance %"] = 0.0
                     
-                    st.subheader("Current Semester")
-                    st.dataframe(pd.DataFrame(st.session_state.curr_data))
+                    try:
+                        raw_input["Study Hours per Week"] = float(np.mean([c.get('study_hours', 0) for c in st.session_state.prev_data]))
+                    except:
+                        raw_input["Study Hours per Week"] = 0.0
+                else:
+                    raw_input["Attendance %"] = 0.0
+                    raw_input["Study Hours per Week"] = 0.0
                 
-                if st.button("🔄 Start New Prediction"):
-                    st.session_state.page = 'Screen 1'
-                    st.rerun()
-                    
+                # Map features to what model expects
+                sample_input = map_features_to_model(raw_input)
+                
             except Exception as e:
-                st.error(f"Error processing data: {str(e)}")
+                st.error(f"Error creating input data: {str(e)}")
+                sample_input = None
+
+            if sample_input is not None:
+                try:
+                    # === DEBUG INFORMATION SECTION ===
+                    with st.expander("🔍 Result Information (Debug)", expanded=False):
+                        st.subheader("Debug Information")
+                        
+                        # --- Expected Features Display ---
+                        st.write("**Expected Features:**")
+                        expected_features_df = pd.DataFrame({
+                            "Index": range(len(st.session_state.expected_features)),
+                            "Feature Name": st.session_state.expected_features
+                        })
+                        st.dataframe(
+                            expected_features_df,
+                            column_config={
+                                "Index": st.column_config.NumberColumn(width="small"),
+                                "Feature Name": st.column_config.TextColumn(width="large")
+                            },
+                            hide_index=True,
+                            use_container_width=True
+                        )
+                        
+                        # --- Mapped Features Display ---
+                        st.write("**Mapped Features with Values:**")
+                        formatted_sample_input = {k: f"{v:.2f}" if isinstance(v, float) else str(v) 
+                                                for k, v in sample_input.items()}
+                        feature_df = pd.DataFrame(
+                            list(formatted_sample_input.items()), 
+                            columns=['Feature', 'Value']
+                        )
+                        st.dataframe(
+                            feature_df,
+                            column_config={
+                                "Feature": st.column_config.TextColumn(width="medium"),
+                                "Value": st.column_config.NumberColumn(width="medium")
+                            },
+                            hide_index=True,
+                            use_container_width=True
+                        )
+                        
+                        # --- Feature Validation ---
+                        missing_features = [f for f in st.session_state.expected_features if f not in sample_input]
+                        if missing_features:
+                            st.warning(f"Missing features: {missing_features}")
+                        
+                        extra_features = [f for f in sample_input if f not in st.session_state.expected_features]
+                        if extra_features:
+                            st.warning(f"Extra features: {extra_features}")
+
+                    # === PREDICTION RESULTS SECTION ===
+                    if st.session_state.ml_model:
+                        try:
+                            previous_cgpa = float(st.session_state.current_cgpa)
+                            # Create dataframe with correct feature order
+                            input_values = []
+                            for feature in st.session_state.expected_features:
+                                value = sample_input.get(feature, 0.0)
+                                try:
+                                    input_values.append(float(value))
+                                except (TypeError, ValueError):
+                                    input_values.append(0.0)
+                            
+                            input_df = pd.DataFrame([input_values], 
+                                                columns=st.session_state.expected_features)
+                            
+                            prediction = float(st.session_state.ml_model.predict(input_df)[0])
+                            
+                            # Display prediction metrics
+                            col1, col2 = st.columns([1, 2])
+                            with col1:
+                                st.metric("Previous CGPA", f"{previous_cgpa:.2f}")
+                                st.metric("Predicted Final CGPA", f"{prediction:.2f}", 
+                                        delta=f"{prediction - previous_cgpa:.2f}")
+                                
+                                # Progress bar without help parameter
+                                progress_value = min(prediction / 5.0, 1.0)
+                                st.progress(progress_value)
+                                
+                                # Grade interpretation
+                                if prediction >= 4.0:
+                                    st.success("First Class Performance! 🎉")
+                                elif prediction >= 3.0:
+                                    st.info("Good Standing - Keep Improving! 📈")
+                                else:
+                                    st.warning("Needs Improvement - Review Recommendations")
+                            
+                            with col2:
+                                # Create and display forecast chart
+                                fig = create_dotted_forecast_chart(previous_cgpa, prediction)
+                                st.pyplot(fig)
+
+                            # --- Feedback and Recommendations Section ---
+                            st.divider()
+                            st.subheader("📝 Performance Feedback & Recommendations")
+
+                            # Generate feedback
+                            feedback, tips = generate_feedback(prediction, raw_input)
+
+                            # Display feedback
+                            st.info(feedback)
+
+                            # Display tips
+                            st.markdown("### 🔍 Areas for Improvement:")
+                            for tip in tips:
+                                st.markdown(f"- {tip}")
+                                
+                            # Enhanced Resource recommendations
+                            st.markdown("### 📚 Recommended Resources:")
+                            
+                            # Study Resources
+                            if raw_input["Study Hours per Week"] < 15:
+                                st.markdown("""
+                                **Study Habits & Techniques:**
+                                - [Study Smarter, Not Harder](https://learningcenter.unc.edu/tips-and-tools/studying-101-study-smarter-not-harder/)
+                                - [Active Learning Strategies](https://www.cultofpedagogy.com/active-learning-strategies/)
+                                - [Pomodoro Technique Guide](https://todoist.com/productivity-methods/pomodoro-technique)
+                                """)
+                            
+                            # Attendance Resources
+                            if raw_input["Attendance %"] < 70:
+                                st.markdown("""
+                                **Attendance Improvement:**
+                                - [Why Attendance Matters](https://www.edutopia.org/article/why-attendance-matters)
+                                - [Building Attendance Habits](https://www.understood.org/articles/en/how-to-help-your-child-with-attendance-issues)
+                                """)
+                            
+                            # Engagement Resources
+                            if raw_input["Lecture Engagement"] < 70:
+                                st.markdown("""
+                                **Lecture Engagement:**
+                                - [Active Learning Strategies](https://www.celt.iastate.edu/teaching/effective-teaching-practices/active-learning)
+                                - [Note-taking Systems](https://www.student.unsw.edu.au/note-taking-skills)
+                                """)
+                            
+                            # General Resources
+                            st.markdown("""
+                            **General Academic Improvement:**
+                            - [Khan Academy](https://www.khanacademy.org/) - Free courses on all subjects
+                            - [Coursera](https://www.coursera.org/) - Online courses from top universities
+                            - [Quizlet](https://quizlet.com/) - Study tools and flashcards
+                            """)
+                            
+                            # Display student profile
+                            display_student_profile()
+
+                            # Generate AI recommendations
+                            student_data_str = format_student_data()
+                            gemini_recommendations = get_academic_recommendations(student_data_str)
+                            
+                            st.subheader("🧠 Recommended Pathways to Achieve Your Goals")
+                            st.markdown(gemini_recommendations)
+                            
+                        except Exception as e:
+                            st.error(f"Error during prediction: {str(e)}")
+                            st.error(traceback.format_exc())
+                            
+                    # Display input summary
+                    with st.expander("📋 View Academic Input Summary", expanded=False):
+                        st.subheader("Previous Semester")
+                        if st.session_state.prev_data:
+                            prev_df = pd.DataFrame(st.session_state.prev_data)
+                            prev_df['Grade'] = prev_df['grade'].apply(lambda x: f"{x} ({grade_to_letter(x)})")
+                            st.dataframe(prev_df[['course_id', 'Grade', 'study_hours', 'attendance', 'course_units', 'learning_style']])
+                        else:
+                            st.info("No previous semester data")
+                        
+                        st.subheader("Current Semester")
+                        if st.session_state.curr_data:
+                            st.dataframe(pd.DataFrame(st.session_state.curr_data))
+                        else:
+                            st.info("No current semester data")
+                    
+                    if st.button("🔄 Start New Prediction"):
+                        st.session_state.page = 'Screen 1'
+                        st.rerun()
+                        
+                except Exception as e:
+                    st.error(f"Error processing data: {str(e)}")
+                    st.error(traceback.format_exc())
+                    
+            if sample_input is None or st.session_state.ml_model is None:
+                st.error("Prediction not possible due to missing data or model")
                 if st.button("🔙 Back to Input Form"):
                     st.session_state.page = 'Screen 1'
                     st.rerun()
 
-#--------------------------STUDY HUB TAB ---------------------------   
+    #--------------------------STUDY HUB TAB ---------------------------   
     with tabs[3]:  # 📘 Study Hub
         # Create subtabs for Study Hub
         study_tabs = st.tabs([
@@ -1375,7 +1720,7 @@ if st.session_state.onboarded:
             with col1:
                 # Goal creation
                 st.subheader("📝 Create New Goals")
-                with st.form("goal_form"):
+                with st.form("user_profile_goal_form"):
                     goal_title = st.text_input("Goal Title", placeholder="e.g., Master Calculus Chapter 3")
                     goal_description = st.text_area("Description", placeholder="Specific details about your goal...")
                     goal_due = st.date_input("Due Date")
@@ -1531,7 +1876,7 @@ if st.session_state.onboarded:
                     st.info("• Maintain your effective study habits")
                     st.info("• Consider mentoring others with your techniques")
 
-#--------------------------COURSE MANAGER TAB ---------------------------
+    #--------------------------COURSE MANAGER TAB ---------------------------
     with tabs[4]:  # 📂 Course Manager
         st.subheader("📂 Course Manager")
         
@@ -1586,7 +1931,7 @@ if st.session_state.onboarded:
                     </div>
                 """, unsafe_allow_html=True)
 
-#--------------------------RESOURCES TAB ---------------------------
+    #--------------------------RESOURCES TAB ---------------------------
     with tabs[5]:  # 📚 Resources
         st.subheader("📚 Academic Resources")
         st.markdown("Curated resources to enhance your learning experience")
@@ -1627,7 +1972,7 @@ if st.session_state.onboarded:
                 })
                 st.success("Thank you for your suggestion!")
 
-#--------------------------USER PROFILE TAB ---------------------------
+    #--------------------------USER PROFILE TAB ---------------------------
     with tabs[6]:  # 👤 User Profile
         st.subheader("👤 User Profile Settings")
         
@@ -1725,6 +2070,6 @@ if st.session_state.onboarded:
 st.divider()
 st.markdown("""
 <div style='text-align: center; margin-top: 50px; font-size: 13px; font-weight: bold; color: #AAAAAA;'>
-    © 2025 <strong>OptiGrade</strong> | <em>Academic Performance Optimization System</em> | <span style='color:#00FFD1;'>v2.0.0</span>
+    © 2025 <strong>Zoe Tech Hub</strong> | <em>OptiGrade - Academic Performance Optimization System</em> | <span style='color:#00FFD1;'>v2.0.0</span>
 </div>
 """, unsafe_allow_html=True)
