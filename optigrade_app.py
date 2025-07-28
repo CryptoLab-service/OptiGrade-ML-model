@@ -282,7 +282,7 @@ def display_student_profile():
     with col6:
         with st.container(border=True, height=100):
             st.markdown("<div style='text-align: center;'>🥇</div>", unsafe_allow_html=True)
-            st.markdown("<div style='text-align: center;'>Top 10% in Physics</div>", unsafe_allow_html=True)
+            st.markdown("<div style='text-align: center;'>Top 10% in problem solving</div>", unsafe_allow_html=True)
     with col7:
         with st.container(border=True, height=100):
             st.markdown("<div style='text-align: center;'>📚</div>", unsafe_allow_html=True)
@@ -1386,8 +1386,8 @@ if st.session_state.onboarded:
             if sample_input is not None:
                 try:
                     # === DEBUG INFORMATION SECTION ===
-                    with st.expander("🔍 Result Information (Debug)", expanded=False):
-                        st.subheader("Debug Information")
+                    with st.expander("🔍 Result Summary", expanded=False):
+                        st.subheader("Result Summary")
                         
                         # --- Expected Features Display ---
                         st.write("**Expected Features:**")
