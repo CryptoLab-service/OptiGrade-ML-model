@@ -1268,9 +1268,9 @@ if st.session_state.onboarded:
 
                 st.divider()
                 cols3 = st.columns(2)
-                semester_gpa = cols3[0].number_input("Last Semester GPA (0-5)", min_value=0.0, 
+                semester_gpa = cols3[0].number_input("Last Semester GPA (0.00-5.00)", min_value=0.0, 
                                                     max_value=5.0, step=0.01, value=None)
-                current_cgpa = cols3[1].number_input("Overall CGPA (0-5)", min_value=0.0, 
+                current_cgpa = cols3[1].number_input("Overall Current CGPA (0.00-5.00)", min_value=0.0, 
                                                     max_value=5.0, step=0.01, value=None)
 
                 submitted = st.form_submit_button("👉 Next: Current Semester")
