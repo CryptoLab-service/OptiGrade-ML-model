@@ -1,3 +1,4 @@
+# Python Environment-Aware Requirements for OptiGrade Demo
 altair==5.5.0
 altex==0.2.0
 annotated-types==0.7.0
@@ -90,7 +91,7 @@ pyparsing==3.2.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.1.1
 pytz==2024.2
-pywin32==308
+pywin32==308; platform_system == "Windows"  # Platform-sensitive fix
 PyYAML==6.0.2
 pyzmq==26.2.0
 referencing==0.35.1
