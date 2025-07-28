@@ -710,7 +710,7 @@ def render_logo():
                 </defs>
             </svg>
         </div>
-    """, height=240
+    """, height=240)
 # ------------------ MAIN APP LAYOUT ------------------
 render_logo()
 
